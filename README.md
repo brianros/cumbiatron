@@ -1,1 +1,1 @@
-An experimental multi instrument control project
+An experimental multi robotic instrument control project
