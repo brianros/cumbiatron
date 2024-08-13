@@ -29,10 +29,8 @@ class CumbiatronCart:
             self.switch_activated.set()
 
     async def initialize(self):
-        await self.center_all_servos()
-        await await asyncio.sleep_ms(500) #Wait for servos to stabilize
         await self.home()
-        
+        await self.center_all_servos()
 
     async def home(self):
         self.is_homing = True
