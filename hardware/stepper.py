@@ -144,107 +144,186 @@ def run_tests(motor):
     print("Starting StepperMotorController tests...")
     
     try:
-        # Test 1: Constant speed
-        print("\nTest 1: Constant Speed")
-        speed = 200  # steps per second
-        duration = 2000  # milliseconds
-        print(f"Speed: {speed} steps/second")
-        print(f"Duration: {duration} ms")
-        print(f"Expected steps: {speed * (duration / 1000)}")
+        print("\nTest: Incremental Movement with Acceleration and Deceleration")
         
-        steps = motor.move_for_time(1, speed, duration, microstep=16)
+        start_speed = 600  # steps per second
+        max_speed = 1400  # steps per second
+        increment_steps = 200
+        pause_duration = 200  # milliseconds
+        num_increments = 5
         
-        print(f"Actual steps moved: {steps}")
-        print(f"Actual speed: {steps / (duration / 1000):.2f} steps/second")
+        def acceleration_profile(t, total_t):
+            if t < total_t / 2:  # First half: accelerate
+                return start_speed + (max_speed - start_speed) * (t / (total_t / 2))
+            else:  # Second half: decelerate
+                return max_speed - (max_speed - start_speed) * ((t - total_t / 2) / (total_t / 2))
+        
+        # Calculate duration for each increment based on average speed
+        average_speed = (start_speed + max_speed) / 2
+        increment_duration_ms = int((increment_steps / average_speed) * 1000)
+        
+        print(f"Start speed: {start_speed} steps/second")
+        print(f"Max speed: {max_speed} steps/second")
+        print(f"Increment: {increment_steps} steps")
+        print(f"Pause duration: {pause_duration} ms")
+        print(f"Number of increments: {num_increments} (in each direction)")
+        print(f"Estimated duration per increment: {increment_duration_ms} ms")
+        
+        def move_increments(direction):
+            direction_str = "forward" if direction > 0 else "backward"
+            print(f"\nMoving {direction_str}:")
+            for i in range(num_increments):
+                steps_moved = motor.move_with_variable_speed(direction, acceleration_profile, increment_duration_ms, microstep=1)
+                print(f"  Increment {i+1}: Moved {steps_moved:.2f} steps")
+                print(f"  Current position: {motor.get_position():.2f}")
+                utime.sleep_ms(pause_duration)
+        
+        # Move forward
+        move_increments(1)
+        
+        # Move backward
+        move_increments(-1)
+        
+        print(f"\nFinal position: {motor.get_position():.2f}")
+        for _ in range(0,2):
+            
+            print("\nTest: Acceleration, Deceleration, and Direction Change")
+            start_speed = 750  # steps per second
+            max_speed = 2500  # steps per second
+            total_steps = 2200
+            
+            def acceleration_profile(t, total_t):
+                if t < total_t / 4:  # First quarter: accelerate
+                    return start_speed + (max_speed - start_speed) * (t / (total_t / 4))
+                elif t < total_t / 2:  # Second quarter: decelerate
+                    return max_speed - (max_speed - start_speed) * ((t - total_t / 4) / (total_t / 4))
+                elif t < 3 * total_t / 4:  # Third quarter: accelerate in opposite direction
+                    return start_speed + (max_speed - start_speed) * ((t - total_t / 2) / (total_t / 4))
+                else:  # Fourth quarter: decelerate in opposite direction
+                    return max_speed - (max_speed - start_speed) * ((t - 3 * total_t / 4) / (total_t / 4))
+            
+            # Calculate duration based on average speed to cover 1400 steps
+            average_speed = (start_speed + max_speed) / 2
+            duration_ms = int((total_steps / average_speed) * 1000)
+            
+            print(f"Start speed: {start_speed} steps/second")
+            print(f"Max speed: {max_speed} steps/second")
+            print(f"Total steps: {total_steps}")
+            print(f"Estimated duration: {duration_ms} ms")
+            
+            # First half of movement (clockwise)
+            steps_cw = motor.move_with_variable_speed(1, acceleration_profile, duration_ms // 2, microstep=1)
+            
+            print(f"Clockwise steps moved: {steps_cw}")
+            
+            # Second half of movement (counter-clockwise)
+            steps_ccw = motor.move_with_variable_speed(-1, acceleration_profile, duration_ms // 2, microstep=1)
+            
+            print(f"Counter-clockwise steps moved: {steps_ccw}")
+            print(f"Total steps moved: {steps_cw + steps_ccw}")
+            print(f"Final position: {motor.get_position()}")
+            
+        # # Test 1: Constant speed
+        # print("\nTest 1: Constant Speed")
+        # speed = 1000  # steps per second
+        # duration = 1400  # milliseconds
+        # print(f"Speed: {speed} steps/second")
+        # print(f"Duration: {duration} ms")
+        # print(f"Expected steps: {speed * (duration / 1000)}")
+        
+        # steps = motor.move_for_time(1, speed, duration, microstep=16)
+        
+        # print(f"Actual steps moved: {steps}")
+        # print(f"Actual speed: {steps / (duration / 1000):.2f} steps/second")
         
         # Test 2: Acceleration
-        print("\nTest 2: Acceleration")
-        start_speed = 100  # steps per second
-        end_speed = 400  # steps per second
-        duration = 3000  # milliseconds
-        print(f"Start speed: {start_speed} steps/second")
-        print(f"End speed: {end_speed} steps/second")
-        print(f"Duration: {duration} ms")
-        print(f"Acceleration: {(end_speed - start_speed) / (duration / 1000):.2f} steps/second²")
+        # print("\nTest 2: Acceleration")
+        # start_speed = 1000  # steps per second
+        # end_speed = 2000  # steps per second
+        # duration = 1600  # milliseconds
+        # print(f"Start speed: {start_speed} steps/second")
+        # print(f"End speed: {end_speed} steps/second")
+        # print(f"Duration: {duration} ms")
+        # print(f"Acceleration: {(end_speed - start_speed) / (duration / 1000):.2f} steps/second²")
         
-        def accelerate(t, total_t):
-            return start_speed + ((end_speed - start_speed) * t / total_t)
+        # def accelerate(t, total_t):
+        #     return start_speed + ((end_speed - start_speed) * t / total_t)
         
-        steps = motor.move_with_variable_speed(1, accelerate, duration, microstep=16)
+        # steps = motor.move_with_variable_speed(1, accelerate, duration, microstep=16)
         
-        print(f"Actual steps moved: {steps}")
-        print(f"Average speed: {steps / (duration / 1000):.2f} steps/second")
+        # print(f"Actual steps moved: {steps}")
+        # print(f"Average speed: {steps / (duration / 1000):.2f} steps/second")
         
-        # Test 3: Deceleration
-        print("\nTest 3: Deceleration")
-        start_speed = 400  # steps per second
-        end_speed = 100  # steps per second
-        duration = 3000  # milliseconds
-        print(f"Start speed: {start_speed} steps/second")
-        print(f"End speed: {end_speed} steps/second")
-        print(f"Duration: {duration} ms")
-        print(f"Deceleration: {(end_speed - start_speed) / (duration / 1000):.2f} steps/second²")
+        # # Test 3: Deceleration
+        # print("\nTest 3: Deceleration")
+        # start_speed = 1600  # steps per second
+        # end_speed = 100  # steps per second
+        # duration = 3000  # milliseconds
+        # print(f"Start speed: {start_speed} steps/second")
+        # print(f"End speed: {end_speed} steps/second")
+        # print(f"Duration: {duration} ms")
+        # print(f"Deceleration: {(end_speed - start_speed) / (duration / 1000):.2f} steps/second²")
         
-        def decelerate(t, total_t):
-            return start_speed + ((end_speed - start_speed) * t / total_t)
+        # def decelerate(t, total_t):
+        #     return start_speed + ((end_speed - start_speed) * t / total_t)
         
-        steps = motor.move_with_variable_speed(-1, decelerate, duration, microstep=16)
+        # steps = motor.move_with_variable_speed(-1, decelerate, duration, microstep=16)
         
-        print(f"Actual steps moved: {steps}")
-        print(f"Average speed: {steps / (duration / 1000):.2f} steps/second")
+        # print(f"Actual steps moved: {steps}")
+        # print(f"Average speed: {steps / (duration / 1000):.2f} steps/second")
         
-        # Test 4: Sinusoidal speed profile
-        print("\nTest 4: Sinusoidal Speed Profile")
-        base_speed = 250  # steps per second
-        amplitude = 150  # steps per second
-        duration = 5000  # milliseconds
-        print(f"Base speed: {base_speed} steps/second")
-        print(f"Amplitude: ±{amplitude} steps/second")
-        print(f"Duration: {duration} ms")
-        print(f"Frequency: 0.2 Hz (1 full sine wave over 5 seconds)")
+        # # Test 4: Sinusoidal speed profile
+        # print("\nTest 4: Sinusoidal Speed Profile")
+        # base_speed = 250  # steps per second
+        # amplitude = 150  # steps per second
+        # duration = 5000  # milliseconds
+        # print(f"Base speed: {base_speed} steps/second")
+        # print(f"Amplitude: ±{amplitude} steps/second")
+        # print(f"Duration: {duration} ms")
+        # print(f"Frequency: 0.2 Hz (1 full sine wave over 5 seconds)")
         
-        def sine_wave(t, total_t):
-            return base_speed + amplitude * math.sin(2 * math.pi * t / total_t)
+        # def sine_wave(t, total_t):
+        #     return base_speed + amplitude * math.sin(2 * math.pi * t / total_t)
         
-        steps = motor.move_with_variable_speed(1, sine_wave, duration, microstep=16)
+        # steps = motor.move_with_variable_speed(1, sine_wave, duration, microstep=16)
         
-        print(f"Actual steps moved: {steps}")
-        print(f"Average speed: {steps / (duration / 1000):.2f} steps/second")
+        # print(f"Actual steps moved: {steps}")
+        # print(f"Average speed: {steps / (duration / 1000):.2f} steps/second")
         
-        # Test 5: Microstepping Accuracy
-        print("\nTest 5: Microstepping Accuracy")
-        test_steps = 200
-        speed = 100  # steps per second
+        # # Test 5: Microstepping Accuracy
+        # print("\nTest 5: Microstepping Accuracy")
+        # test_steps = 400
+        # speed = 1100  # steps per second
 
-        for microstep in sorted(motor.MICROSTEP_MODES.keys()):
-            print(f"\nTesting {microstep}-microstep mode:")
-            motor.set_microstep_mode(microstep)
+        # for microstep in sorted(motor.MICROSTEP_MODES.keys()):
+        #     print(f"\nTesting {microstep}-microstep mode:")
+        #     motor.set_microstep_mode(microstep)
             
-            # Move clockwise
-            print("  Moving clockwise...")
-            start_pos = motor.get_position()
-            steps_cw = motor.move_for_time(1, speed, (test_steps / speed) * 1000)
-            end_pos = motor.get_position()
+        #     # Move clockwise
+        #     print("  Moving clockwise...")
+        #     start_pos = motor.get_position()
+        #     steps_cw = motor.move_for_time(1, speed, (test_steps / speed) * 1000)
+        #     end_pos = motor.get_position()
             
-            print(f"    Requested steps: {test_steps}")
-            print(f"    Actual steps: {steps_cw}")
-            print(f"    Position change: {end_pos - start_pos}")
-            print(f"    Speed: {steps_cw / ((test_steps / speed)):.2f} steps/second")
+        #     print(f"    Requested steps: {test_steps}")
+        #     print(f"    Actual steps: {steps_cw}")
+        #     print(f"    Position change: {end_pos - start_pos}")
+        #     print(f"    Speed: {steps_cw / ((test_steps / speed)):.2f} steps/second")
             
-            utime.sleep_ms(1000)  # Pause between movements
+        #     utime.sleep_ms(1000)  # Pause between movements
             
-            # Move counterclockwise
-            print("  Moving counterclockwise...")
-            start_pos = motor.get_position()
-            steps_ccw = motor.move_for_time(-1, speed, (test_steps / speed) * 1000)
-            end_pos = motor.get_position()
+        #     # Move counterclockwise
+        #     print("  Moving counterclockwise...")
+        #     start_pos = motor.get_position()
+        #     steps_ccw = motor.move_for_time(-1, speed, (test_steps / speed) * 1000)
+        #     end_pos = motor.get_position()
             
-            print(f"    Requested steps: {test_steps}")
-            print(f"    Actual steps: {steps_ccw}")
-            print(f"    Position change: {start_pos - end_pos}")
-            print(f"    Speed: {steps_ccw / ((test_steps / speed)):.2f} steps/second")
+        #     print(f"    Requested steps: {test_steps}")
+        #     print(f"    Actual steps: {steps_ccw}")
+        #     print(f"    Position change: {start_pos - end_pos}")
+        #     print(f"    Speed: {steps_ccw / ((test_steps / speed)):.2f} steps/second")
             
-            utime.sleep_ms(1000)  # Pause between microstep modes
+        #     utime.sleep_ms(1000)  # Pause between microstep modes
 
     except KeyboardInterrupt:
         print("\nTests interrupted by user.")
